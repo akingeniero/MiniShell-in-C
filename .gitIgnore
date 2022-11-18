@@ -2,6 +2,6 @@ libparser.a
 parser.h
 test
 test.c
-.vscode
+.vscode/
 hola.txt
 minishell.o
