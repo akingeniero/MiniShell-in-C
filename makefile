@@ -1,3 +1,3 @@
 test.out:
-	gcc -Wall -Wextra -o test minishell.c libparser.a -static
+	gcc -Wall -Wextra -o m minishell.c libparser.a -static
 	
