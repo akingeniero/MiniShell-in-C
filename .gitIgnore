@@ -1,7 +1,0 @@
-libparser.a
-parser.h
-test
-test.c
-.vscode/
-hola.txt
-minishell.o
