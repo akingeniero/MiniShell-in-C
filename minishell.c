@@ -44,6 +44,121 @@ void redirect(char *in, char *ou, char *err, bool c1)
     }
 }
 
+void executeNComands(tline *line)
+{
+    pid_t pid;
+    int p[2], p1[2];
+    int j = 0;
+    pipe(p);
+    pid = fork();
+    if (pid == 0)
+    {
+        redirect(line->redirect_input, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
+        if (line->ncommands > 1)
+        {
+            close(p[0]);
+            dup2(p[1], STDOUT_FILENO);
+            close(p[1]);
+        }
+        execvp(line->commands[0].argv[0], line->commands[0].argv);
+        fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
+        exit(1);
+    }
+    else
+    {
+        close(p[1]);
+        for (j = 1; j < line->ncommands; j++)
+        {
+            if (j % 2 == 0)
+            {
+                pipe(p);
+            }
+            else
+            {
+                pipe(p1);
+            }
+            pid = fork();
+            if (pid == 0)
+            {
+                redirect(NULL, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
+                if (j % 2 == 0)
+                {
+                    if (j > 0)
+                    {
+                        dup2(p1[0], STDIN_FILENO);
+                    }
+                    if (j < line->ncommands - 1)
+                    {
+                        dup2(p[1], STDOUT_FILENO);
+                    }
+                }
+                else
+                {
+                    if (j > 0)
+                    {
+                        dup2(p[0], STDIN_FILENO);
+                    }
+                    if (j < line->ncommands - 1)
+                    {
+                        dup2(p1[1], STDOUT_FILENO);
+                    }
+                }
+                close(p[0]);
+                close(p1[1]);
+                close(p1[0]);
+                close(p[1]);
+
+                execvp(line->commands[j].argv[0], line->commands[j].argv);
+                fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
+                exit(1);
+            }
+            else
+            {
+                if (j % 2 == 0)
+                {
+                    dup2(p1[0], p[1]);
+                    close(p1[0]);
+                    close(p[1]);
+                    if (j == (line->ncommands - 1))
+                    {
+                        close(p[0]);
+                    }
+                }
+                else
+                {
+                    dup2(p[0], p1[1]);
+                    close(p[0]);
+                    close(p1[1]);
+                    if (j == (line->ncommands - 1))
+                    {
+                        close(p1[0]);
+                    }
+                }
+            }
+        }
+        for (j = 0; j < line->ncommands; j++)
+        {
+            wait(NULL);
+        }
+    }
+}
+
+void cdCommand(tcommand *com)
+{
+    if (com->argc == 1)
+    {
+        chdir(getenv("HOME"));
+    }
+    else
+    {
+        chdir(com->argv[1]);
+    }
+}
+
+void umaskCommand(tcommand *com){
+    
+}
+
 int main(void)
 {
     // Declaraciones
@@ -53,108 +168,33 @@ int main(void)
     gethostname(hostname, sizeof(hostname));
     getlogin_r(us, sizeof(us));
     tline *line;
-    pid_t pid;
-    int j = 0;
-    int p[2], p1[2];
 
-    //Lógica de programa
+    // Lógica de programa
     prompt(us, wd, hostname);
     while (fgets(buffer, 1024, stdin))
     {
         line = tokenize(buffer);
         if (line->ncommands != 0)
         {
-            pipe(p);
-            pid = fork();
-            if (pid == 0)
+            if (line->ncommands == 1)
             {
-                redirect(line->redirect_input, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
-                if (line->ncommands > 1)
+                if (strcmp(line->commands[0].argv[0], "cd") == 0)
                 {
-                    close(p[0]);
-                    dup2(p[1], STDOUT_FILENO);
-                    close(p[1]);
+                    cdCommand(line->commands);
+                    getcwd(wd, sizeof(wd));
+                }else if(strcmp(line->commands[0].argv[0], "exit") == 0){
+                    exit(0);
+                }else if(strcmp(line->commands[0].argv[0], "umask") == 0){
+                    umaskCommand(line->commands);
                 }
-                execvp(line->commands[0].argv[0], line->commands[0].argv);
-                fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
-                exit(1);
+                else
+                {
+                    executeNComands(line);
+                }
             }
             else
             {
-                close(p[1]);
-                for (j = 1; j < line->ncommands; j++)
-                {
-                    if (j % 2 == 0)
-                    {
-                        pipe(p);
-                    }
-                    else
-                    {
-                        pipe(p1);
-                    }
-                    pid = fork();
-                    if (pid == 0)
-                    {
-                        redirect(NULL, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
-                        if (j % 2 == 0)
-                        {
-                            if (j > 0)
-                            {
-                                dup2(p1[0], STDIN_FILENO);
-                            }
-                            if (j < line->ncommands - 1)
-                            {
-                                dup2(p[1], STDOUT_FILENO);
-                            }
-                        }
-                        else
-                        {
-                            if (j > 0)
-                            {
-                                dup2(p[0], STDIN_FILENO);
-                            }
-                            if (j < line->ncommands - 1)
-                            {
-                                dup2(p1[1], STDOUT_FILENO);
-                            }
-                        }
-                        close(p[0]);
-                        close(p1[1]);
-                        close(p1[0]);
-                        close(p[1]);
-
-                        execvp(line->commands[j].argv[0], line->commands[j].argv);
-                        fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
-                        exit(1);
-                    }
-                    else
-                    {
-                        if (j % 2 == 0)
-                        {
-                            dup2(p1[0], p[1]);
-                            close(p1[0]);
-                            close(p[1]);
-                            if (j == (line->ncommands - 1))
-                            {
-                                close(p[0]);
-                            }
-                        }
-                        else
-                        {
-                            dup2(p[0], p1[1]);
-                            close(p[0]);
-                            close(p1[1]);
-                            if (j == (line->ncommands - 1))
-                            {
-                                close(p1[0]);
-                            }
-                        }
-                    }
-                }
-                for (j = 0; j < line->ncommands; j++)
-                {
-                    wait(NULL);
-                }
+                executeNComands(line);
             }
         }
         prompt(us, wd, hostname);
