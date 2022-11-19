@@ -46,15 +46,18 @@ void redirect(char *in, char *ou, char *err, bool c1)
 
 int main(void)
 {
+    // Declaraciones
     char buffer[1024];
     char wd[1024], us[1024], hostname[1024];
+    getcwd(wd, sizeof(wd));
+    gethostname(hostname, sizeof(hostname));
+    getlogin_r(us, sizeof(us));
     tline *line;
     pid_t pid;
     int j = 0;
     int p[2], p1[2];
-    getcwd(wd, sizeof(wd));
-    gethostname(hostname, sizeof(hostname));
-    getlogin_r(us, sizeof(us));
+
+    //Lógica de programa
     prompt(us, wd, hostname);
     while (fgets(buffer, 1024, stdin))
     {
