@@ -54,7 +54,17 @@ void redirect(char *in, char *ou, char *err, bool c1)
 }
 
 void crlc(int sig){
-    printf("");
+    char wd[1024], us[1024], hostname[1024];
+    getcwd(wd, sizeof(wd));
+    gethostname(hostname, sizeof(hostname));
+    getlogin_r(us, sizeof(us));
+    printf("\n");
+    prompt(us, wd, hostname);
+    fflush(stdout);
+}
+
+void crlc2(int sig){
+    printf("\n");
 }
 
 void executeNComands(tline *line, jobs ljobs[], int num)
@@ -63,8 +73,8 @@ void executeNComands(tline *line, jobs ljobs[], int num)
     int p[2], p1[2];
     int j = 0;
     pipe(p);
+    signal(SIGINT, crlc2);
     pid = fork();
-    signal(SIGINT,crlc);
     if (line->background==1){
         signal(SIGINT,SIG_IGN);
         ljobs[num].tamaño = line->ncommands;
@@ -162,7 +172,6 @@ void executeNComands(tline *line, jobs ljobs[], int num)
         if (line->background==0){
         for (j = 0; j < line->ncommands; j++)
         {
-            printf("pasa");
             wait(NULL);
         }
         }
@@ -171,6 +180,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
             ljobs[num].pid = pid;
         }
     }
+        signal(SIGINT, crlc);
 }
 
 
@@ -242,7 +252,7 @@ int main(void)
     jobs ljobs[50];
     int numero=0;
     // Lógica de programa
-    signal(SIGINT,SIG_IGN);
+    signal(SIGINT, crlc);
     prompt(us, wd, hostname);
     while (fgets(buffer, 1024, stdin))
     {
