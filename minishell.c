@@ -54,7 +54,7 @@ void redirect(char *in, char *ou, char *err, bool c1)
 }
 
 void crlc(int sig){
-    printf("\n");
+    printf("");
 }
 
 void executeNComands(tline *line, jobs ljobs[], int num)
