@@ -121,10 +121,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
                 redirect(NULL, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
                 if (j % 2 == 0)
                 {
-                    if (j > 0)
-                    {
-                        dup2(p1[0], STDIN_FILENO);
-                    }
+                    dup2(p1[0], STDIN_FILENO);
                     if (j < line->ncommands - 1)
                     {
                         dup2(p[1], STDOUT_FILENO);
