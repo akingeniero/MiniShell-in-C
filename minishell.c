@@ -242,6 +242,7 @@ int main(void)
     jobs ljobs[50];
     int numero=0;
     // Lógica de programa
+    signal(SIGINT,SIG_IGN);
     prompt(us, wd, hostname);
     while (fgets(buffer, 1024, stdin))
     {
