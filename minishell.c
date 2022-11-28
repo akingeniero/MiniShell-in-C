@@ -256,9 +256,7 @@ void mostrarjobs(jobs ljobs[], int *numero)
     p = 0;
     for (i = 0; i < (*numero); i++)
     {
-        if ((ljobs[i].tamaño > 1))
-        {
-            for (j = 0; j < ljobs[i].tamaño; j++)
+        for (j = 0; j < ljobs[i].tamaño; j++)
             {
                 if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
                 {
@@ -277,21 +275,6 @@ void mostrarjobs(jobs ljobs[], int *numero)
                 h[p] = i;
                 p++;
             }
-        }
-        else
-        {
-
-            if ((waitpid(ljobs[i].otros[0], NULL, WNOHANG) == ljobs[i].otros[0]))
-            {
-                printf("[%d]  Hecho     %s ", i, ljobs[i].instruccion);
-                h[p] = i;
-                p++;
-            }
-            else
-            {
-                printf("[%d]  Ejecutando      %s ", i, ljobs[i].instruccion);
-            }
-        }
     }
     if (p > 0)
     {
