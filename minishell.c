@@ -6,18 +6,19 @@
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
-
 #include "parser.h"
 
-typedef struct {
-	pid_t pid;
+// Estructura para guardar el jobs
+typedef struct
+{
+    pid_t pid;
     char instruccion[1024];
-    int curso;
     int tamaño;
     pid_t otros[50];
     int otros2[50];
 } jobs;
 
+// Imprime un prompt personalizado
 void prompt(char *us, char *wd, char *hostname)
 {
     printf("\033[0;32m"); // verde
@@ -30,6 +31,7 @@ void prompt(char *us, char *wd, char *hostname)
     printf("$ ");
 }
 
+// Redirecciona la entrada y salida estándar según se pida en la instrucción
 void redirect(char *in, char *ou, char *err, bool c1)
 {
     FILE *fi, *fo, *fe;
@@ -53,6 +55,7 @@ void redirect(char *in, char *ou, char *err, bool c1)
     }
 }
 
+// Sirven para reprogramar control + C
 void crlc(int sig)
 {
     char wd[1024], us[1024], hostname[1024];
@@ -74,18 +77,13 @@ void executeNComands(tline *line, jobs ljobs[], int num)
     pid_t pid;
     int p[2], p1[2];
     int j = 0;
-    pid_t pru[50];
-    pipe(p);
+    pid_t *pru = malloc(line->ncommands);
+    if (line->ncommands > 1)
+    {
+        pipe(p);
+    }
+    signal(SIGINT, crlc2);
     pid = fork();
-    signal(SIGINT,crlc);
-    if (line->background==1){
-        signal(SIGINT,SIG_IGN);
-        ljobs[num].tamaño = line->ncommands;
-        ljobs[num].otros[0]=pid;
-    }
-    else{
-            pru[j]=pid;
-    }
     if (pid == 0)
     {
         redirect(line->redirect_input, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
@@ -101,7 +99,20 @@ void executeNComands(tline *line, jobs ljobs[], int num)
     }
     else
     {
-        close(p[1]);
+        if (line->background == 1)
+        {
+            signal(SIGINT, SIG_IGN);
+            ljobs[num].tamaño = line->ncommands;
+            ljobs[num].otros[0] = pid;
+        }
+        else
+        {
+            pru[j] = pid;
+        }
+        if (line->ncommands > 1)
+        {
+            close(p[1]);
+        }
         for (j = 1; j < line->ncommands; j++)
         {
             if (j % 2 == 0)
@@ -118,10 +129,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
                 redirect(NULL, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
                 if (j % 2 == 0)
                 {
-                    if (j > 0)
-                    {
-                        dup2(p1[0], STDIN_FILENO);
-                    }
+                    dup2(p1[0], STDIN_FILENO);
                     if (j < line->ncommands - 1)
                     {
                         dup2(p[1], STDOUT_FILENO);
@@ -129,10 +137,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
                 }
                 else
                 {
-                    if (j > 0)
-                    {
-                        dup2(p[0], STDIN_FILENO);
-                    }
+                    dup2(p[0], STDIN_FILENO);
                     if (j < line->ncommands - 1)
                     {
                         dup2(p1[1], STDOUT_FILENO);
@@ -168,39 +173,51 @@ void executeNComands(tline *line, jobs ljobs[], int num)
                         close(p1[0]);
                     }
                 }
-            if (line->background==1){
-                ljobs[num].otros[j]=pid;
-            }
-            else{
-                pru[j]=pid;
-            }
+                if (line->background == 1)
+                {
+                    ljobs[num].otros[j] = pid;
+                }
+                else
+                {
+                    pru[j] = pid;
+                }
             }
         }
-        if (line->background==0){
-        for (j = 0; j < line->ncommands; j++)
+
+        if (line->background == 0)
         {
-            waitpid(pru[j],NULL,NULL);
+            for (j = 0; j < line->ncommands; j++)
+            {
+                waitpid(pru[j], NULL, NULL);
+            }
         }
-        }
-        else{
+        else
+        {
             ljobs[num].pid = pid;
         }
     }
+    signal(SIGINT, crlc);
 }
 
-void fgCommand(tcommand *com,jobs ljobs[],int numero){
-    int i,j;
-    if (com->argc==1){
-    for (i=0;i<ljobs[numero-1].tamaño;i++){
-        waitpid(ljobs[numero-1].otros[i],NULL,NULL);
+void fgCommand(tcommand *com, jobs ljobs[], int numero)
+{
+    int i, j;
+    if (com->argc == 1)
+    {
+        for (i = 0; i < ljobs[numero - 1].tamaño; i++)
+        {
+            waitpid(ljobs[numero - 1].otros[i], NULL, NULL);
+        }
     }
-    }
-    else{
-    for (i=0;i<ljobs[atoi(com->argv[1])].tamaño;i++){
-        waitpid(ljobs[atoi(com->argv[1])].otros[i],NULL,NULL);
-    }
-    for(j=i;j<numero;j++){
-            ljobs[j]=ljobs[j+1];
+    else
+    {
+        for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)
+        {
+            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, NULL);
+        }
+        for (j = i; j < numero; j++)
+        {
+            ljobs[j] = ljobs[j + 1];
         }
     }
 }
@@ -223,60 +240,74 @@ void umaskCommand(tcommand *com)
     umask(masc);
 }
 
-void exitCommand(int numero, jobs ljobs[]){
-    int i,j;
-    for(j=0;j<numero;j++){
-        for (i=0;i<ljobs[j].tamaño;i++){
-            kill(ljobs[j].otros[i],9);
+void exitCommand(int numero, jobs ljobs[])
+{
+    int i, j;
+    for (j = 0; j < numero; j++)
+    {
+        for (i = 0; i < ljobs[j].tamaño; i++)
+        {
+            kill(ljobs[j].otros[i], 9);
         }
     }
-    execvp(exit,NULL);
+    execvp(exit, NULL);
 }
 
-void mostrarjobs(jobs ljobs[],int *numero){
-    int i,j,p,cont;
+void mostrarjobs(jobs ljobs[], int *numero)
+{
+    int i, j, p, cont;
     int h[50];
-    cont=0;
-    p=0;
-    for (i=0;i<(*numero);i++){
-        if ((ljobs[i].tamaño>1)){
-            for(j=0;j<ljobs[i].tamaño;j++){
-                if ((waitpid(ljobs[i].otros[j],NULL,WNOHANG)==ljobs[i].otros[j])||(ljobs[i].otros2[j])){
+    cont = 0;
+    p = 0;
+    for (i = 0; i < (*numero); i++)
+    {
+        if ((ljobs[i].tamaño > 1))
+        {
+            for (j = 0; j < ljobs[i].tamaño; j++)
+            {
+                if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
+                {
                     cont++;
-                    ljobs[i].otros2[j]=1;
+                    ljobs[i].otros2[j] = 1;
                 }
-                else{
-                    printf("[%d] Ejecutando        %s ",i,ljobs[i].instruccion);
+                else
+                {
+                    printf("[%d] Ejecutando        %s ", i, ljobs[i].instruccion);
                     break;
                 }
             }
-            if (cont==ljobs[i].tamaño)
+            if (cont == ljobs[i].tamaño)
             {
-                printf("[%d]  Hecho        %s ",i,ljobs[i].instruccion);
-                h[p]=i;
+                printf("[%d]  Hecho        %s ", i, ljobs[i].instruccion);
+                h[p] = i;
                 p++;
             }
         }
-        else{
-        if ((waitpid(ljobs[i].pid,NULL,WNOHANG)==ljobs[i].pid)){
-            printf("[%d]  Hecho     %s ",i,ljobs[i].instruccion);
-            h[p]=i;
-            p++;
-        }
-        else{
-            printf("[%d]  Ejecutando      %s ",i,ljobs[i].instruccion);   
-        }
+        else
+        {
+            if ((waitpid(ljobs[i].pid, NULL, WNOHANG) == ljobs[i].pid))
+            {
+                printf("[%d]  Hecho     %s ", i, ljobs[i].instruccion);
+                h[p] = i;
+                p++;
+            }
+            else
+            {
+                printf("[%d]  Ejecutando      %s ", i, ljobs[i].instruccion);
+            }
         }
     }
-    if(p>0){
-    i=0;
-    for (p ; p >i; p--)
+    if (p > 0)
     {
-        for(j=h[i];j<=(*numero);j++){
-            ljobs[j]=ljobs[j+1];
+        i = 0;
+        for (p; p > i; p--)
+        {
+            for (j = h[i]; j <= (*numero); j++)
+            {
+                ljobs[j] = ljobs[j + 1];
+            }
+            *numero = *numero - 1;
         }
-        *numero=*numero-1;
-    }
     }
 }
 
@@ -290,9 +321,10 @@ int main(void)
     getlogin_r(us, sizeof(us));
     tline *line;
     jobs ljobs[50];
-    int numero=0;
+    int numero = 0;
+
     // Lógica de programa
-    signal(SIGINT,SIG_IGN);
+    signal(SIGINT, crlc);
     prompt(us, wd, hostname);
     while (fgets(buffer, 1024, stdin))
     {
@@ -303,38 +335,47 @@ int main(void)
             {
                 if (strcmp(line->commands[0].argv[0], "cd") == 0)
                 {
-
                     cdCommand(line->commands);
                     getcwd(wd, sizeof(wd));
-                }else if(strcmp(line->commands[0].argv[0], "exit") == 0){
-                    exit(0);
-                }else if(strcmp(line->commands[0].argv[0], "umask") == 0){
-                    umaskCommand(line->commands);
-                }else if(strcmp(line->commands[0].argv[0], "jobs") == 0){
-                    mostrarjobs(ljobs,&numero);
                 }
-                else if(strcmp(line->commands[0].argv[0], "fg") == 0){
-                    fgCommand(line->commands,ljobs,numero);
+                else if (strcmp(line->commands[0].argv[0], "exit") == 0)
+                {
+                    exit(0);
+                }
+                else if (strcmp(line->commands[0].argv[0], "umask") == 0)
+                {
+                    umaskCommand(line->commands);
+                }
+                else if (strcmp(line->commands[0].argv[0], "jobs") == 0)
+                {
+                    mostrarjobs(ljobs, &numero);
+                }
+                else if (strcmp(line->commands[0].argv[0], "fg") == 0)
+                {
+                    fgCommand(line->commands, ljobs, numero);
                     numero--;
                 }
-                else if(strcmp(line->commands[0].argv[0], "exit") == 0){
-                    exitCommand(ljobs,numero);
+                else if (strcmp(line->commands[0].argv[0], "exit") == 0)
+                {
+                    exitCommand(ljobs, numero);
                 }
                 else
                 {
-                    executeNComands(line,&ljobs,numero);
-                    if (ljobs[numero].pid != 0){
-                        strcpy(ljobs[numero].instruccion,buffer);
+                    executeNComands(line, &ljobs, numero);
+                    if (ljobs[numero].pid != 0)
+                    {
+                        strcpy(ljobs[numero].instruccion, buffer);
                         numero++;
                     }
                 }
             }
             else
             {
-                executeNComands(line,&ljobs,numero);
-                if (ljobs[numero].pid != 0){
-                        strcpy(ljobs[numero].instruccion,buffer);
-                        numero++;
+                executeNComands(line, &ljobs, numero);
+                if (ljobs[numero].pid != 0)
+                {
+                    strcpy(ljobs[numero].instruccion, buffer);
+                    numero++;
                 }
             }
         }
