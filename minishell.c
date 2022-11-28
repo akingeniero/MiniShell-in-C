@@ -11,7 +11,6 @@
 // Estructura para guardar el jobs
 typedef struct
 {
-    pid_t pid;
     char instruccion[1024];
     int tamaño;
     pid_t otros[50];
@@ -191,10 +190,6 @@ void executeNComands(tline *line, jobs ljobs[], int num)
                 waitpid(pru[j], NULL, NULL);
             }
         }
-        else
-        {
-            ljobs[num].pid = pid;
-        }
     }
     signal(SIGINT, crlc);
 }
@@ -285,7 +280,8 @@ void mostrarjobs(jobs ljobs[], int *numero)
         }
         else
         {
-            if ((waitpid(ljobs[i].pid, NULL, WNOHANG) == ljobs[i].pid))
+
+            if ((waitpid(ljobs[i].otros[0], NULL, WNOHANG) == ljobs[i].otros[0]))
             {
                 printf("[%d]  Hecho     %s ", i, ljobs[i].instruccion);
                 h[p] = i;
@@ -362,7 +358,7 @@ int main(void)
                 else
                 {
                     executeNComands(line, &ljobs, numero);
-                    if (ljobs[numero].pid != 0)
+                    if (ljobs[numero].otros[0] != 0)
                     {
                         strcpy(ljobs[numero].instruccion, buffer);
                         numero++;
@@ -372,7 +368,7 @@ int main(void)
             else
             {
                 executeNComands(line, &ljobs, numero);
-                if (ljobs[numero].pid != 0)
+                if (ljobs[numero].otros[0] != 0)
                 {
                     strcpy(ljobs[numero].instruccion, buffer);
                     numero++;
