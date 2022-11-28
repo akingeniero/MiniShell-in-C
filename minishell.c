@@ -196,6 +196,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
 
 void fgCommand(tcommand *com, jobs ljobs[], int numero)
 {
+    signal(SIGINT, crlc2);
     int i, j;
     if (com->argc == 1)
     {
@@ -215,6 +216,7 @@ void fgCommand(tcommand *com, jobs ljobs[], int numero)
             ljobs[j] = ljobs[j + 1];
         }
     }
+    signal(SIGINT, crlc);
 }
 
 void cdCommand(tcommand *com)
@@ -245,7 +247,7 @@ void exitCommand(int numero, jobs ljobs[])
             kill(ljobs[j].otros[i], 9);
         }
     }
-    execvp(exit, NULL);
+    exit(0);
 }
 
 void mostrarjobs(jobs ljobs[], int *numero)
