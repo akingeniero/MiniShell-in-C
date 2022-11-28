@@ -55,7 +55,7 @@ void redirect(char *in, char *ou, char *err, bool c1)
 }
 
 // Sirven para reprogramar control + C
-void crlc(int sig)
+void crlc()
 {
     char wd[1024], us[1024], hostname[1024];
     getcwd(wd, sizeof(wd));
@@ -66,7 +66,7 @@ void crlc(int sig)
     fflush(stdout);
 }
 
-void crlc2(int sig)
+void crlc2()
 {
     printf("\n");
 }
@@ -187,7 +187,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
         {
             for (j = 0; j < line->ncommands; j++)
             {
-                waitpid(pru[j], NULL, NULL);
+                waitpid(pru[j], NULL, (int) NULL);
             }
         }
     }
@@ -201,14 +201,14 @@ void fgCommand(tcommand *com, jobs ljobs[], int numero)
     {
         for (i = 0; i < ljobs[numero - 1].tamaño; i++)
         {
-            waitpid(ljobs[numero - 1].otros[i], NULL, NULL);
+            waitpid(ljobs[numero - 1].otros[i], NULL, (int) NULL);
         }
     }
     else
     {
         for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)
         {
-            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, NULL);
+            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, (int) NULL);
         }
         for (j = i; j < numero; j++)
         {
