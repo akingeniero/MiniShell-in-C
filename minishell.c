@@ -71,8 +71,10 @@ void crlc2()
     printf("\n");
 }
 
-void executeNComands(tline *line, jobs ljobs[], int num)
+void executeNComands(tline *line, jobs **lljobs, int num)
 {
+    jobs *ljobs;
+    ljobs = (jobs *) *lljobs;
     pid_t pid;
     int p[2], p1[2];
     int j = 0;
@@ -187,7 +189,7 @@ void executeNComands(tline *line, jobs ljobs[], int num)
         {
             for (j = 0; j < line->ncommands; j++)
             {
-                waitpid(pru[j], NULL, (int) NULL);
+                waitpid(pru[j], NULL, 0);
             }
         }
     }
@@ -202,14 +204,14 @@ void fgCommand(tcommand *com, jobs ljobs[], int numero)
     {
         for (i = 0; i < ljobs[numero - 1].tamaño; i++)
         {
-            waitpid(ljobs[numero - 1].otros[i], NULL, (int) NULL);
+            waitpid(ljobs[numero - 1].otros[i], NULL, 0);
         }
     }
     else
     {
         for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)
         {
-            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, (int) NULL);
+            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, 0);
         }
         for (j = i; j < numero; j++)
         {
@@ -257,37 +259,37 @@ void mostrarjobs(jobs ljobs[], int *numero)
     p = 0;
     for (i = 0; i < (*numero); i++)
     {
-        cont=0;
+        cont = 0;
         for (j = 0; j < ljobs[i].tamaño; j++)
+        {
+            if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
             {
-                if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
-                {
-                    cont++;
-                    ljobs[i].otros2[j] = 1;
-                }
-                else
-                {
-                    printf("[%d] Ejecutando        %s ", i, ljobs[i].instruccion);
-                    break;
-                }
+                cont++;
+                ljobs[i].otros2[j] = 1;
             }
-            if (cont == ljobs[i].tamaño)
+            else
             {
-                printf("[%d]  Hecho        %s ", i, ljobs[i].instruccion);
-                h[p] = i;
-                p++;
+                printf("[%d] Ejecutando        %s", i, ljobs[i].instruccion);
+                break;
             }
+        }
+        if (cont == ljobs[i].tamaño)
+        {
+            printf("[%d]  Hecho        %s", i, ljobs[i].instruccion);
+            h[p] = i;
+            p++;
+        }
     }
     if (p > 0)
     {
-        i = 0;
-        for (p; p > i; p--)
+        while (p > 0)
         {
-            for (j = h[i]; j <= (*numero); j++)
+            for (j = h[0]; j <= (*numero); j++)
             {
                 ljobs[j] = ljobs[j + 1];
             }
             *numero = *numero - 1;
+            p--;
         }
     }
 }
@@ -301,7 +303,7 @@ int main(void)
     gethostname(hostname, sizeof(hostname));
     getlogin_r(us, sizeof(us));
     tline *line;
-    jobs ljobs[50];
+    jobs *ljobs = malloc(sizeof(jobs) * 50);
     int numero = 0;
 
     // Lógica de programa
@@ -338,7 +340,7 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "exit") == 0)
                 {
-                    exitCommand(ljobs, numero);
+                    exitCommand(numero, ljobs);
                 }
                 else
                 {
