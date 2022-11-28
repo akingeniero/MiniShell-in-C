@@ -252,10 +252,10 @@ void mostrarjobs(jobs ljobs[], int *numero)
 {
     int i, j, p, cont;
     int h[50];
-    cont = 0;
     p = 0;
     for (i = 0; i < (*numero); i++)
     {
+        cont=0;
         for (j = 0; j < ljobs[i].tamaño; j++)
             {
                 if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
