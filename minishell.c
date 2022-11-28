@@ -321,10 +321,6 @@ int main(void)
                     cdCommand(line->commands);
                     getcwd(wd, sizeof(wd));
                 }
-                else if (strcmp(line->commands[0].argv[0], "exit") == 0)
-                {
-                    exit(0);
-                }
                 else if (strcmp(line->commands[0].argv[0], "umask") == 0)
                 {
                     umaskCommand(line->commands);
