@@ -18,10 +18,7 @@ typedef struct
     int otros2[50];
 } jobs;
 
-<<<<<<< HEAD
 int mascara = 0002;
-=======
->>>>>>> 37b3092574901bcbef8a52b4b04e24093bac6e0c
 
 // Imprime un prompt personalizado
 void prompt(char *us, char *wd, char *hostname)
