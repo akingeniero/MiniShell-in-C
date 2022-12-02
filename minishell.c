@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "parser.h"
+#include <sys/stat.h>
 
 // Estructura para guardar el jobs
 typedef struct
@@ -16,6 +17,8 @@ typedef struct
     pid_t otros[50];
     int otros2[50];
 } jobs;
+
+int mascara = 0002;
 
 // Imprime un prompt personalizado
 void prompt(char *us, char *wd, char *hostname)
@@ -233,10 +236,18 @@ void cdCommand(tcommand *com)
     }
 }
 
-void umaskCommand(tcommand *com)
+void umaskCommand(tcommand *com,int *mascara)
 {
-    mode_t masc = com->argv[1];
-    umask(masc);
+    int aux = (int) *mascara;
+    if (com->argc ==1)
+    {
+        printf("%d \n",*mascara);
+    }
+    else
+    {
+        aux =  atoi(com->argv[1]);
+        umask( aux);
+    }
 }
 
 void exitCommand(int numero, jobs ljobs[])
@@ -323,7 +334,7 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "umask") == 0)
                 {
-                    umaskCommand(line->commands);
+                    umaskCommand(line->commands,&mascara);
                 }
                 else if (strcmp(line->commands[0].argv[0], "jobs") == 0)
                 {
@@ -343,6 +354,8 @@ int main(void)
                     executeNComands(line, &ljobs, numero);
                     if (ljobs[numero].otros[0] != 0)
                     {
+
+                        printf("[%d] %d \n",numero,ljobs[numero].otros[0]);
                         strcpy(ljobs[numero].instruccion, buffer);
                         numero++;
                     }
@@ -353,6 +366,7 @@ int main(void)
                 executeNComands(line, &ljobs, numero);
                 if (ljobs[numero].otros[0] != 0)
                 {
+                    printf("[%d] %d \n",numero,ljobs[numero].otros[-1]);
                     strcpy(ljobs[numero].instruccion, buffer);
                     numero++;
                 }
