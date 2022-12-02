@@ -312,7 +312,7 @@ int main(void)
     while (fgets(buffer, 1024, stdin))
     {
         line = tokenize(buffer);
-        if (line->ncommands != 0)
+        if (line != NULL && line->ncommands != 0 )
         {
             if (line->ncommands == 1)
             {
