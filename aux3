@@ -1,0 +1,127 @@
+void executeNComands(tline *line, jobs ljobs[], int num)
+{
+    pid_t pid;
+    int p[2], p1[2];
+    int j = 0;
+    pid_t *pru = malloc(line->ncommands);
+    if
+        if (line->ncommands > 1)
+        {
+            pipe(p);
+        }
+    signal(SIGINT, crlc2);
+    pid = fork();
+    if (pid == 0)
+    {
+        redirect(line->redirect_input, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
+        if (line->ncommands > 1)
+        {
+            close(p[0]);
+            dup2(p[1], STDOUT_FILENO);
+            close(p[1]);
+        }
+        execvp(line->commands[0].argv[0], line->commands[0].argv);
+        fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
+        exit(1);
+    }
+    else
+    {
+        if (line->background == 1)
+        {
+            signal(SIGINT, SIG_IGN);
+            ljobs[num].tamaño = line->ncommands;
+            ljobs[num].otros[0] = pid;
+        }
+        else
+        {
+            pru[j] = pid;
+        }
+        if (line->ncommands > 1)
+        {
+            close(p[1]);
+        }
+        for (j = 1; j < line->ncommands; j++)
+        {
+            if (j % 2 == 0)
+            {
+                pipe(p);
+            }
+            else
+            {
+                pipe(p1);
+            }
+            pid = fork();
+            if (pid == 0)
+            {
+                redirect(NULL, line->redirect_output, line->redirect_error, j == (line->ncommands - 1));
+                if (j % 2 == 0)
+                {
+                    dup2(p1[0], STDIN_FILENO);
+                    if (j < line->ncommands - 1)
+                    {
+                        dup2(p[1], STDOUT_FILENO);
+                    }
+                }
+                else
+                {
+                    dup2(p[0], STDIN_FILENO);
+                    if (j < line->ncommands - 1)
+                    {
+                        dup2(p1[1], STDOUT_FILENO);
+                    }
+                }
+                close(p[0]);
+                close(p1[1]);
+                close(p1[0]);
+                close(p[1]);
+                execvp(line->commands[j].argv[0], line->commands[j].argv);
+                fprintf(stderr, "%s: No se encuentra el mandato\n", line->commands[j].argv[0]);
+                exit(1);
+            }
+            else
+            {
+                if (j % 2 == 0)
+                {
+                    dup2(p1[0], p[1]);
+                    close(p1[0]);
+                    close(p[1]);
+                    if (j == (line->ncommands - 1))
+                    {
+                        close(p[0]);
+                    }
+                }
+                else
+                {
+                    dup2(p[0], p1[1]);
+                    close(p[0]);
+                    close(p1[1]);
+                    if (j == (line->ncommands - 1))
+                    {
+                        close(p1[0]);
+                    }
+                }
+                if (line->background == 1)
+                {
+                    ljobs[num].otros[j] = pid;
+                }
+                else
+                {
+                    pru[j] = pid;
+                }
+            }
+        }
+
+        if (line->background == 0)
+        {
+            for (j = 0; j < line->ncommands; j++)
+            {
+                waitpid(pru[j], NULL, NULL);
+            }
+        }
+        else
+        {
+            ljobs[num].pid = pid;
+        }
+    }
+    signal(SIGINT, crlc);
+}
