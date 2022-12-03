@@ -1,5 +1,6 @@
-#include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -7,8 +8,34 @@
 #include <string.h>
 #include <stdbool.h>
 #include "parser.h"
-#include <sys/stat.h>
+#include <math.h>
 
+int octalADecimal(int n) {
+	int i=0,tmp,sum=0;
+	while(n)
+	{
+		tmp=n%10;
+		n=n/10;
+		sum+=tmp*pow(8,i);
+		i++;
+	}
+	return sum;
+}
+
+bool checkOctal(char *n){
+    int i;
+    int aux;
+    if (strlen(n) > 4){
+        return false;
+    }
+    for (i = strlen(n) - 1; i>=0; i--){
+        aux = n[i] - 48;
+        if((aux < 0 )|| (aux > 7)){
+            return false;
+        }
+    }
+    return true;
+}
 // Estructura para guardar el jobs
 typedef struct
 {
@@ -17,8 +44,6 @@ typedef struct
     pid_t otros[50];
     int otros2[50];
 } jobs;
-
-int mascara = 0002;
 
 // Imprime un prompt personalizado
 void prompt(char *us, char *wd, char *hostname)
@@ -40,10 +65,13 @@ void redirect(char *in, char *ou, char *err, bool c1)
     if (in != NULL)
     {
         fi = fopen(in, "r");
-        if (fi != NULL){
-                    dup2(fileno(fi), STDIN_FILENO);
-        }else{
-            fprintf(stderr,"%s: no existe el archivo o el directorio\n", in);
+        if (fi != NULL)
+        {
+            dup2(fileno(fi), STDIN_FILENO);
+        }
+        else
+        {
+            fprintf(stderr, "%s: no existe el archivo o el directorio\n", in);
             exit(1);
         }
         fclose(fi);
@@ -235,28 +263,49 @@ void cdCommand(tcommand *com)
     {
         chdir(getenv("HOME"));
     }
-    else if(com->argc == 2)
+    else if (com->argc == 2)
     {
         if (chdir(com->argv[1]) != 0)
         {
-           fprintf(stderr, "cd: %s no es un directorio\n", com->argv[1]);
+            fprintf(stderr, "cd: %s no es un directorio\n", com->argv[1]);
         }
-    }else{
+    }
+    else
+    {
         fprintf(stderr, "cd: demasiados argumentos\n");
     }
 }
 
-void umaskCommand(tcommand *com,int *mascara)
+void umaskCommand(tcommand *com, mode_t*mascara)
 {
-    int aux = (int) *mascara;
-    if (com->argc ==1)
+    int aux2 = *mascara;
+    int numero = 4;
+    if (com->argc == 1)
     {
-        printf("%d \n",*mascara);
+        if (aux2 == 0){
+            numero --;
+        }
+        while (aux2 > 0)
+        {
+            aux2 = aux2 / 10;
+            numero--;
+        }
+        while (numero > 0)
+        {
+            printf("0");
+            numero--;
+        }
+        printf("%i \n", *mascara);
     }
     else
     {
-        aux =  atoi(com->argv[1]);
-        umask( aux);
+        if (checkOctal(com->argv[1])){
+        *mascara = atoi(com->argv[1]);
+        umask(octalADecimal(*mascara)); 
+        }else{
+            fprintf(stderr, "%s: no valido debe ser un número octal de 4 cifras o menos\n", com->argv[1]);
+            return;
+        }
     }
 }
 
@@ -326,6 +375,8 @@ int main(void)
     tline *line;
     jobs *ljobs = malloc(sizeof(jobs) * 50);
     int numero = 0;
+    mode_t mascara = 22;
+    umask(18);
 
     // Lógica de programa
     signal(SIGINT, crlc);
@@ -344,7 +395,7 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "umask") == 0)
                 {
-                    umaskCommand(line->commands,&mascara);
+                    umaskCommand(line->commands, &mascara);
                 }
                 else if (strcmp(line->commands[0].argv[0], "jobs") == 0)
                 {
@@ -365,7 +416,7 @@ int main(void)
                     if (ljobs[numero].otros[0] != 0)
                     {
 
-                        printf("[%d] %d \n",numero,ljobs[numero].otros[0]);
+                        printf("[%d] %d \n", numero, ljobs[numero].otros[0]);
                         strcpy(ljobs[numero].instruccion, buffer);
                         numero++;
                     }
@@ -376,7 +427,7 @@ int main(void)
                 executeNComands(line, &ljobs, numero);
                 if (ljobs[numero].otros[0] != 0)
                 {
-                    printf("[%d] %d \n",numero,ljobs[numero].otros[-1]);
+                    printf("[%d] %d \n", numero, ljobs[numero].otros[-1]);
                     strcpy(ljobs[numero].instruccion, buffer);
                     numero++;
                 }
