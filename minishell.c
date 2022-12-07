@@ -10,18 +10,6 @@
 #include "parser.h"
 #include <math.h>
 
-int octalADecimal(int n) {
-	int i=0,tmp,sum=0;
-	while(n)
-	{
-		tmp=n%10;
-		n=n/10;
-		sum+=tmp*pow(8,i);
-		i++;
-	}
-	return sum;
-}
-
 bool checkOctal(char *n){
     int i;
     int aux;
@@ -280,6 +268,7 @@ void umaskCommand(tcommand *com, mode_t*mascara)
 {
     int aux2 = *mascara;
     int numero = 4;
+    int octal;
     if (com->argc == 1)
     {
         if (aux2 == 0){
@@ -299,9 +288,11 @@ void umaskCommand(tcommand *com, mode_t*mascara)
     }
     else
     {
+        sscanf(com->argv[1], "%o", &octal);
         if (checkOctal(com->argv[1])){
         *mascara = atoi(com->argv[1]);
-        umask(octalADecimal(*mascara)); 
+
+        umask(octal); 
         }else{
             fprintf(stderr, "%s: no valido debe ser un número octal de 4 cifras o menos\n", com->argv[1]);
             return;
