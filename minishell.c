@@ -313,7 +313,8 @@ void exitCommand(int numero, jobs ljobs[])
     exit(0);
 }
 
-void mostrarjobs(jobs ljobs[], int *numero)
+
+void mostrarjobs(jobs ljobs[], int *numero, int control)
 {
     int i, j, p, cont;
     int h[50];
@@ -330,7 +331,9 @@ void mostrarjobs(jobs ljobs[], int *numero)
             }
             else
             {
+                if (control){
                 printf("[%d] Ejecutando        %s", i, ljobs[i].instruccion);
+                }
                 break;
             }
         }
@@ -354,6 +357,8 @@ void mostrarjobs(jobs ljobs[], int *numero)
         }
     }
 }
+
+
 
 int main(void)
 {
@@ -390,7 +395,7 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "jobs") == 0)
                 {
-                    mostrarjobs(ljobs, &numero);
+                    mostrarjobs(ljobs, &numero,1);
                 }
                 else if (strcmp(line->commands[0].argv[0], "fg") == 0)
                 {
@@ -418,12 +423,13 @@ int main(void)
                 executeNComands(line, &ljobs, numero);
                 if (ljobs[numero].otros[0] != 0)
                 {
-                    printf("[%d] %d \n", numero, ljobs[numero].otros[-1]);
+                    printf("[%d] %d \n", numero, ljobs[numero].otros[0]);
                     strcpy(ljobs[numero].instruccion, buffer);
                     numero++;
                 }
             }
         }
+        mostrarjobs(ljobs, &numero,0);
         prompt(us, wd, hostname);
     }
 }
