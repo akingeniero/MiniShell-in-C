@@ -421,8 +421,13 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "fg") == 0) // Entramos por este si el comando es un fg
                 {
-                    fgCommand(line->commands, ljobs, numero);
-                    numero--;
+                    if (atoi(line->commands->argv[1])<=numero-1){
+                        fgCommand(line->commands, ljobs, numero);
+                        numero--;
+                    }
+                    else{
+                        printf("fg: %d: no existe ese trabajo \n",atoi(line->commands->argv[1]));
+                    }
                 }
                 else if (strcmp(line->commands[0].argv[0], "exit") == 0) // Entramos por este si el comando es un jobs
                 {
