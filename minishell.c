@@ -228,6 +228,7 @@ void executeNComands(tline *line, jobs **lljobs, int num)
             }
         }
     }
+    free(pidAux);
     signal(SIGINT, crlc); // Reprogramamos la señal ctrl + c y la dejamos como estaba antes de la función
 }
 
