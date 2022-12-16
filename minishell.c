@@ -13,8 +13,8 @@ typedef struct
 {
     char instruccion[1024]; // String de la instruccion
     int tamaño;             // Numero de comandos
-    pid_t otros[50];
-    int otros2[50];
+    pid_t pids[50]; //array de pids
+    int comprobatorio[50]; //array que comprueba que pid ha terminado
 } jobs;
 
 // En esta función se comprueba que el número que nos han introducido para el umask sea válido
@@ -139,7 +139,7 @@ void executeNComands(tline *line, jobs **lljobs, int num)
         {
             signal(SIGINT, SIG_IGN);             // Ignoramos la señal ctrl + c
             ljobs[num].tamaño = line->ncommands; // Guardamos el numero de comandos en nuestra ed de procesos en bg
-            ljobs[num].otros[0] = pid;           // Guardamos el pid del primer hijo
+            ljobs[num].pids[0] = pid;           // Guardamos el pid del primer hijo
         }
         else // Si no se ha pedido que se haga en background, guardamos en una ed local
         {
@@ -211,7 +211,7 @@ void executeNComands(tline *line, jobs **lljobs, int num)
                 }
                 if (line->background == 1) // Si hay que ejecutar en bg
                 {
-                    ljobs[num].otros[j] = pid; // Guardamos el pid del hijo en una ed
+                    ljobs[num].pids[j] = pid; // Guardamos el pid del hijo en una ed
                 }
                 else // Si hay que ejecutar en fg
                 {
@@ -235,22 +235,22 @@ void executeNComands(tline *line, jobs **lljobs, int num)
 // Pasa un comando a foreground
 void fgCommand(tcommand *com, jobs ljobs[], int numero)
 {
-    signal(SIGINT, crlc2);
-    int i, j;
-    if (com->argc == 1)
+    signal(SIGINT, crlc2);//seleccionamos un manejador cuanto se hace crtl+c
+    int i, j;// inicio varibles para los for
+    if (com->argc == 1)//en caso de que no haya argumento realizamos lo siguiente
     {
-        for (i = 0; i < ljobs[numero - 1].tamaño; i++)
+        for (i = 0; i < ljobs[numero - 1].tamaño; i++)// esperamos a todas las partes de ultima instuccion
         {
-            waitpid(ljobs[numero - 1].otros[i], NULL, 0);
+            waitpid(ljobs[numero - 1].pids[i], NULL, 0);
         }
     }
     else
     {
-        for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)
+        for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)//esperamos a todas las partes de la instuccion seleccionada
         {
-            waitpid(ljobs[atoi(com->argv[1])].otros[i], NULL, 0);
+            waitpid(ljobs[atoi(com->argv[1])].pids[i], NULL, 0);
         }
-        for (j = i; j < numero; j++)
+        for (j = i; j < numero; j++)//actuliazmos las lista de las instrucciones
         {
             ljobs[j] = ljobs[j + 1];
         }
@@ -326,7 +326,7 @@ void exitCommand(int numero, jobs ljobs[])
     {
         for (i = 0; i < ljobs[j].tamaño; i++)
         {
-            kill(ljobs[j].otros[i], 9);
+            kill(ljobs[j].pids[i], 9);
         }
     }
     free(ljobs); // Liberamos la ed de procesos en background
@@ -336,22 +336,22 @@ void exitCommand(int numero, jobs ljobs[])
 // Función para mostrar los procesos en bg
 void mostrarjobs(jobs ljobs[], int *numero, int control)
 {
-    int i, j, p, cont;
-    int h[50];
+    int i, j, p, cont;//variables de los for, indice de los cambios y contador
+    int cambio[50];//array de pids que han terminado 
     p = 0;
-    for (i = 0; i < (*numero); i++)
+    for (i = 0; i < (*numero); i++)// comprobamos todas las instrucciones en bg
     {
         cont = 0;
-        for (j = 0; j < ljobs[i].tamaño; j++)
+        for (j = 0; j < ljobs[i].tamaño; j++)//comprobamos todos las partes de las instrucciones
         {
-            if ((waitpid(ljobs[i].otros[j], NULL, WNOHANG) == ljobs[i].otros[j]) || (ljobs[i].otros2[j]))
+            if ((waitpid(ljobs[i].pids[j], NULL, WNOHANG) == ljobs[i].pids[j]) || (ljobs[i].comprobatorio[j]))//compruebamos si un pid ha terminado
             {
                 cont++;
-                ljobs[i].otros2[j] = 1;
+                ljobs[i].comprobatorio[j] = 1;
             }
             else
             {
-                if (control)
+                if (control)//control es una variable que se activara en el jobs pero no al combrobar despues de una instruccion si algo ha acabado
                 {
                     printf("[%d] Ejecutando        %s", i, ljobs[i].instruccion);
                 }
@@ -361,7 +361,7 @@ void mostrarjobs(jobs ljobs[], int *numero, int control)
         if (cont == ljobs[i].tamaño)
         {
             printf("[%d]  Hecho        %s", i, ljobs[i].instruccion);
-            h[p] = i;
+            cambio[p] = i;
             p++;
         }
     }
@@ -369,7 +369,7 @@ void mostrarjobs(jobs ljobs[], int *numero, int control)
     {
         while (p > 0)
         {
-            for (j = h[0]; j <= (*numero); j++)
+            for (j = cambio[0]; j <= (*numero); j++)
             {
                 ljobs[j] = ljobs[j + 1];
             }
@@ -421,12 +421,18 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "fg") == 0) // Entramos por este si el comando es un fg
                 {
+                    if (numero>0){
                     if (atoi(line->commands->argv[1])<=numero-1){
                         fgCommand(line->commands, ljobs, numero);
                         numero--;
                     }
                     else{
-                        printf("fg: %d: no existe ese trabajo \n",atoi(line->commands->argv[1]));
+                        printf("fg:%d :no existe ese trabajo \n",atoi(line->commands->argv[1]));
+                    }
+                    }
+                    else{
+                        printf("fg: no existe ese trabajo \n");
+
                     }
                 }
                 else if (strcmp(line->commands[0].argv[0], "exit") == 0) // Entramos por este si el comando es un jobs
@@ -436,10 +442,10 @@ int main(void)
                 else // Si no concuerda con ninguno de los anteriores ejecutamos los comandos externos de la shell
                 {
                     executeNComands(line, &ljobs, numero);
-                    if (ljobs[numero].otros[0] != 0)
+                    if (ljobs[numero].pids[0] != 0)
                     {
 
-                        printf("[%d] %d \n", numero, ljobs[numero].otros[0]);
+                        printf("[%d] %d \n", numero, ljobs[numero].pids[0]);
                         strcpy(ljobs[numero].instruccion, buffer);
                         numero++;
                     }
@@ -448,9 +454,9 @@ int main(void)
             else // Si hay más de un comando, ejecutamos los externos de la shell
             {
                 executeNComands(line, &ljobs, numero);
-                if (ljobs[numero].otros[0] != 0)
+                if (ljobs[numero].pids[0] != 0)
                 {
-                    printf("[%d] %d \n", numero, ljobs[numero].otros[0]);
+                    printf("[%d] %d \n", numero, ljobs[numero].pids[0]);
                     strcpy(ljobs[numero].instruccion, buffer);
                     numero++;
                 }
