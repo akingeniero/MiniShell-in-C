@@ -463,7 +463,7 @@ int main(void)
                 else // Si no concuerda con ninguno de los anteriores ejecutamos los comandos externos de la shell
                 {
                     executeNComands(line, &ljobs, numero);
-                    if (ljobs[numero].pids[0] != 0)
+                    if (line->background == 1)
                     {
 
                         printf("[%d] %d \n", numero, ljobs[numero].pids[0]);
@@ -475,7 +475,7 @@ int main(void)
             else // Si hay más de un comando, ejecutamos los externos de la shell
             {
                 executeNComands(line, &ljobs, numero);
-                if (ljobs[numero].pids[0] != 0)
+                if (line->background == 1)
                 {
                     printf("[%d] %d \n", numero, ljobs[numero].pids[0]);
                     strcpy(ljobs[numero].instruccion, buffer);
