@@ -13,11 +13,11 @@ typedef struct
 {
     char instruccion[1024]; // String de la instruccion
     int tamaño;             // Numero de comandos
-    pid_t pids[50]; //array de pids
-    int comprobatorio[50]; //array que comprueba que pid ha terminado
+    pid_t pids[50];         // array de pids
+    int comprobatorio[50];  // array que comprueba que pid ha terminado
 } jobs;
 
-jobs ayuda;
+jobs comandoAMatar; // Variable global que servirá para cuando el usuario quiera traer un comando del fg y ejecute la señal sign
 
 // En esta función se comprueba que el número que nos han introducido para el umask sea válido
 bool checkOctal(char *n)
@@ -103,12 +103,14 @@ void crlc2()
     printf("\n");
 }
 
-void crlc3(){
+// Sirve para reprogramar el ctrl + c si se acaba de traer algo del bg al fg
+void crlc3()
+{
     int i;
-    for (i = 0; i < ayuda.tamaño; i++)// esperamos a todas las partes de ultima instuccion
-        {
-            kill(ayuda.pids[i], 9);
-        }
+    for (i = 0; i < comandoAMatar.tamaño; i++) // mata todos los pid del comando
+    {
+        kill(comandoAMatar.pids[i], 9);
+    }
     printf("\n");
 }
 
@@ -116,26 +118,28 @@ void crlc3(){
 void executeNComands(tline *line, jobs **lljobs, int num)
 {
     // Declaraciones
-    jobs *ljobs;                             // Va a servir para guardar la ed de procesos en bg
-    ljobs = (jobs *)*lljobs;                 // Accedemos a la memoria de la ed para los procesos en bg
-    pid_t pid;                               // Variable para ir guardando los pid de los hijos
-    int ppar[2], pimpar[2];                  // Pipes que vamos a usar para comunicar a los hijos
-    int j = 0;                               // Variable para saber si ese hijo es par o impar
-    pid_t *pidAux = malloc(line->ncommands); 
+    jobs *ljobs;             // Va a servir para guardar la ed de procesos en bg
+    ljobs = (jobs *)*lljobs; // Accedemos a la memoria de la ed para los procesos en bg
+    pid_t pid;               // Variable para ir guardando los pid de los hijos
+    int ppar[2], pimpar[2];  // Pipes que vamos a usar para comunicar a los hijos
+    int j = 0;               // Variable para saber si ese hijo es par o impar
+    pid_t *pidAux = malloc(line->ncommands);
     // Ejecución
-    if (line->background == 1){
-       signal(SIGINT, SIG_IGN);
+    if (line->background == 1)
+    {
+        signal(SIGINT, SIG_IGN);
     }
-    else{
+    else
+    {
         signal(SIGINT, crlc2);
     }
     if (line->ncommands > 1) // Si hay más de un comando inicializamos la primera pipe
     {
         pipe(ppar);
     }
-    //signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c para que haga un print(\n)
-    pid = fork();          // Creamos el hijo
-    if (pid == 0)          // Si es el hijo ejecutamos
+    // signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c para que haga un print(\n)
+    pid = fork(); // Creamos el hijo
+    if (pid == 0) // Si es el hijo ejecutamos
     {
         redirect(line->redirect_input, line->redirect_output, line->redirect_error, j == (line->ncommands - 1)); // Redirijimos la entrada y salida etandar si es necesario
         if (line->ncommands > 1)                                                                                 // Si hay más de un comando
@@ -154,7 +158,7 @@ void executeNComands(tline *line, jobs **lljobs, int num)
         {
             signal(SIGINT, SIG_IGN);             // Ignoramos la señal ctrl + c
             ljobs[num].tamaño = line->ncommands; // Guardamos el numero de comandos en nuestra ed de procesos en bg
-            ljobs[num].pids[0] = pid;           // Guardamos el pid del primer hijo
+            ljobs[num].pids[0] = pid;            // Guardamos el pid del primer hijo
         }
         else // Si no se ha pedido que se haga en background, guardamos en una ed local
         {
@@ -250,23 +254,24 @@ void executeNComands(tline *line, jobs **lljobs, int num)
 // Pasa un comando a foreground
 void fgCommand(tcommand *com, jobs ljobs[], int numero)
 {
-    signal(SIGINT, crlc3);//seleccionamos un manejador cuanto se hace crtl+c
-    int i, j;// inicio varibles para los for
-    if (com->argc == 1)//en caso de que no haya argumento realizamos lo siguiente
+    signal(SIGINT, crlc3); // seleccionamos un manejador cuanto se hace crtl+c
+    int i, j;              // inicio varibles para los for
+    if (com->argc == 1)    // en caso de que no haya argumento realizamos lo siguiente
     {
-        ayuda = ljobs[numero - 1];
-        for (i = 0; i < ljobs[numero - 1].tamaño; i++)// esperamos a todas las partes de ultima instuccion
+        comandoAMatar = ljobs[numero - 1];             // Establecemos la variable global por si el usuario quiere matar el proceso que acaba de mandar a fg
+        for (i = 0; i < ljobs[numero - 1].tamaño; i++) // esperamos a todas las partes de ultima instuccion
         {
             waitpid(ljobs[numero - 1].pids[i], NULL, 0);
         }
     }
     else
     {
-        for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++)//esperamos a todas las partes de la instuccion seleccionada
+        comandoAMatar = ljobs[atoi(com->argv[1])];             // Establecemos la variable global por si el usuario quiere matar el proceso que acaba de mandar a fg
+        for (i = 0; i < ljobs[atoi(com->argv[1])].tamaño; i++) // esperamos a todas las partes de la instuccion seleccionada
         {
             waitpid(ljobs[atoi(com->argv[1])].pids[i], NULL, 0);
         }
-        for (j = i; j < numero; j++)//actuliazmos las lista de las instrucciones
+        for (j = i; j < numero; j++) // actuliazmos las lista de las instrucciones
         {
             ljobs[j] = ljobs[j + 1];
         }
@@ -352,22 +357,22 @@ void exitCommand(int numero, jobs ljobs[])
 // Función para mostrar los procesos en bg
 void mostrarjobs(jobs ljobs[], int *numero, int control)
 {
-    int i, j, p, cont;//variables de los for, indice de los cambios y contador
-    int cambio[50];//array de pids que han terminado 
+    int i, j, p, cont; // variables de los for, indice de los cambios y contador
+    int cambio[50];    // array de pids que han terminado
     p = 0;
-    for (i = 0; i < (*numero); i++)// comprobamos todas las instrucciones en bg
+    for (i = 0; i < (*numero); i++) // comprobamos todas las instrucciones en bg
     {
         cont = 0;
-        for (j = 0; j < ljobs[i].tamaño; j++)//comprobamos todos las partes de las instrucciones
+        for (j = 0; j < ljobs[i].tamaño; j++) // comprobamos todos las partes de las instrucciones
         {
-            if ((waitpid(ljobs[i].pids[j], NULL, WNOHANG) == ljobs[i].pids[j]) || (ljobs[i].comprobatorio[j]))//compruebamos si un pid ha terminado
+            if ((waitpid(ljobs[i].pids[j], NULL, WNOHANG) == ljobs[i].pids[j]) || (ljobs[i].comprobatorio[j])) // compruebamos si un pid ha terminado
             {
                 cont++;
                 ljobs[i].comprobatorio[j] = 1;
             }
             else
             {
-                if (control)//control es una variable que se activara en el jobs pero no al combrobar despues de una instruccion si algo ha acabado
+                if (control) // control es una variable que se activara en el jobs pero no al combrobar despues de una instruccion si algo ha acabado
                 {
                     printf("[%d] Ejecutando        %s", i, ljobs[i].instruccion);
                 }
@@ -437,24 +442,30 @@ int main(void)
                 }
                 else if (strcmp(line->commands[0].argv[0], "fg") == 0) // Entramos por este si el comando es un fg
                 {
-                    if (numero>0){
-                        if (line->commands->argc>1){
-                            if (atoi(line->commands->argv[1])<=numero-1){
+                    if (numero > 0)
+                    {
+                        if (line->commands->argc > 1)
+                        {
+                            if (atoi(line->commands->argv[1]) <= numero - 1)
+                            {
                                 fgCommand(line->commands, ljobs, numero);
                                 numero--;
                             }
-                            else{
+                            else
+                            {
                                 printf("fg: no existe ese trabajo \n");
                             }
                         }
-                        else{
+                        else
+                        {
                             fgCommand(line->commands, ljobs, numero);
                             numero--;
                         }
                     }
-                    else{
+                    else
+                    {
                         printf("fg: no existe ese trabajo \n");
-                }
+                    }
                 }
                 else if (strcmp(line->commands[0].argv[0], "exit") == 0) // Entramos por este si el comando es un jobs
                 {
