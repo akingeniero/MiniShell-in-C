@@ -17,6 +17,8 @@ typedef struct
     int comprobatorio[50]; //array que comprueba que pid ha terminado
 } jobs;
 
+jobs ayuda;
+
 // En esta función se comprueba que el número que nos han introducido para el umask sea válido
 bool checkOctal(char *n)
 {
@@ -87,8 +89,7 @@ void redirect(char *in, char *ou, char *err, bool c1)
 // Sirve para reprogramar el ctrl + c si no se está ejecutando nada en fg
 void crlc()
 {
-   signal(SIGINT, SIG_IGN);
-   char wd[1024], us[1024], hostname[1024]; // Variables del prompt
+    char wd[1024], us[1024], hostname[1024]; // Variables del prompt
     getcwd(wd, sizeof(wd));                  // Incializamos las variables del prompt
     gethostname(hostname, sizeof(hostname));
     getlogin_r(us, sizeof(us));
@@ -99,6 +100,15 @@ void crlc()
 // Sirve para reprogramar el ctrl + c si se está ejecutando algo en fg
 void crlc2()
 {
+    printf("\n");
+}
+
+void crlc3(){
+    int i;
+    for (i = 0; i < ayuda.tamaño; i++)// esperamos a todas las partes de ultima instuccion
+        {
+            kill(ayuda.pids[i], 9);
+        }
     printf("\n");
 }
 
@@ -240,10 +250,11 @@ void executeNComands(tline *line, jobs **lljobs, int num)
 // Pasa un comando a foreground
 void fgCommand(tcommand *com, jobs ljobs[], int numero)
 {
-    signal(SIGINT, crlc2);//seleccionamos un manejador cuanto se hace crtl+c
+    signal(SIGINT, crlc3);//seleccionamos un manejador cuanto se hace crtl+c
     int i, j;// inicio varibles para los for
     if (com->argc == 1)//en caso de que no haya argumento realizamos lo siguiente
     {
+        ayuda = ljobs[numero - 1];
         for (i = 0; i < ljobs[numero - 1].tamaño; i++)// esperamos a todas las partes de ultima instuccion
         {
             waitpid(ljobs[numero - 1].pids[i], NULL, 0);
@@ -396,7 +407,7 @@ int main(void)
     umask(18);                               // Ponemos la máscara a la máscara por defecto de linux
 
     // Lógica de programa
-    signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c
+    signal(SIGINT, crlc); // Reprogramamos la señal ctrl + c
 
     getcwd(wd, sizeof(wd));                  // Inicializamos variables del prompt
     gethostname(hostname, sizeof(hostname)); //
