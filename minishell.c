@@ -87,7 +87,8 @@ void redirect(char *in, char *ou, char *err, bool c1)
 // Sirve para reprogramar el ctrl + c si no se está ejecutando nada en fg
 void crlc()
 {
-    char wd[1024], us[1024], hostname[1024]; // Variables del prompt
+   signal(SIGINT, SIG_IGN);
+   char wd[1024], us[1024], hostname[1024]; // Variables del prompt
     getcwd(wd, sizeof(wd));                  // Incializamos las variables del prompt
     gethostname(hostname, sizeof(hostname));
     getlogin_r(us, sizeof(us));
@@ -95,7 +96,6 @@ void crlc()
     prompt(us, wd, hostname);
     fflush(stdout);
 }
-
 // Sirve para reprogramar el ctrl + c si se está ejecutando algo en fg
 void crlc2()
 {
@@ -111,14 +111,19 @@ void executeNComands(tline *line, jobs **lljobs, int num)
     pid_t pid;                               // Variable para ir guardando los pid de los hijos
     int ppar[2], pimpar[2];                  // Pipes que vamos a usar para comunicar a los hijos
     int j = 0;                               // Variable para saber si ese hijo es par o impar
-    pid_t *pidAux = malloc(line->ncommands); //
-
+    pid_t *pidAux = malloc(line->ncommands); 
     // Ejecución
+    if (line->background == 1){
+       signal(SIGINT, SIG_IGN);
+    }
+    else{
+        signal(SIGINT, crlc2);
+    }
     if (line->ncommands > 1) // Si hay más de un comando inicializamos la primera pipe
     {
         pipe(ppar);
     }
-    signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c para que haga un print(\n)
+    //signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c para que haga un print(\n)
     pid = fork();          // Creamos el hijo
     if (pid == 0)          // Si es el hijo ejecutamos
     {
@@ -391,7 +396,7 @@ int main(void)
     umask(18);                               // Ponemos la máscara a la máscara por defecto de linux
 
     // Lógica de programa
-    signal(SIGINT, crlc); // Reprogramamos la señal ctrl + c
+    signal(SIGINT, crlc2); // Reprogramamos la señal ctrl + c
 
     getcwd(wd, sizeof(wd));                  // Inicializamos variables del prompt
     gethostname(hostname, sizeof(hostname)); //
@@ -422,18 +427,23 @@ int main(void)
                 else if (strcmp(line->commands[0].argv[0], "fg") == 0) // Entramos por este si el comando es un fg
                 {
                     if (numero>0){
-                    if (atoi(line->commands->argv[1])<=numero-1){
-                        fgCommand(line->commands, ljobs, numero);
-                        numero--;
-                    }
-                    else{
-                        printf("fg:%d :no existe ese trabajo \n",atoi(line->commands->argv[1]));
-                    }
+                        if (line->commands->argc>1){
+                            if (atoi(line->commands->argv[1])<=numero-1){
+                                fgCommand(line->commands, ljobs, numero);
+                                numero--;
+                            }
+                            else{
+                                printf("fg: no existe ese trabajo \n");
+                            }
+                        }
+                        else{
+                            fgCommand(line->commands, ljobs, numero);
+                            numero--;
+                        }
                     }
                     else{
                         printf("fg: no existe ese trabajo \n");
-
-                    }
+                }
                 }
                 else if (strcmp(line->commands[0].argv[0], "exit") == 0) // Entramos por este si el comando es un jobs
                 {
