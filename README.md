@@ -1,4 +1,3 @@
-
 # minishell
 
 This project is all about recreating the shell, taking bash (Bourne Again Shell) as reference. This was a couple project, and I worked with [@lord-47](https://github.com/lord-47) :)
@@ -14,29 +13,83 @@ The general idea for this shell is executing all the external shell commands and
 
 ### Shell External Commands
 
-As mentioned before, the minishell can execute all system commands. You can also execute commands with pipes, so you can nest commands with a limit of up to 50 linked commands (which we think is more than enough). To connect commands you have to use the character |, for example:
+As mentioned before, the minishell can execute all system commands. You can also execute commands with pipes, so you can nest commands with a limit of up to 50 linked commands (which we think is more than enough). To connect commands you have to use the character '|'.
 
 ```shell
 $ ls *.txt | grep test | wc -l
 ```
 
+### Input and output redirection
+
+You can redirect the input, output and errors of a command. To redirect the input you must use "< fileName", the output can be redirected with "> fileName" and the error using ">& fileName". 
+
+```shell
+$ grep hello <input.txt >output.txt &>error.txt
+```
+
 ### Execute Commands in Background
 
-It also allows sending commands to the background. This allows you to continue using the minishell while a command is running. To send commands to the background you have to use the character &, for example: 
+It also allows sending commands to the background. This allows you to continue using the minishell while a command is running. To send commands to the background you have to use the character '&'.
 
 ```shell
 $ sleep 3 &
+[1] 1726
 ```
 
 ### jobs Command
 
+The jobs command displays the tasks that are running in the background.
+
+```shell
+$ jobs
+[1]-  Stopped                 make -j4
+[2]+  Stopped                 find . -name "*.java"
+```
+
 ### fg Command
+
+With the fg command you can bring to the foreground those tasks that are in the background. You can use it alone or with a number to indicate the command you want to bring from the background.
+
+```shell
+$ fg
+$ fg 3
+```
 
 ### cd Command
 
+With cd you can change the directory you are in. If no path is passed to the command the working directory will be changed to the user's home directory.
+
+```shell
+$ cd ../
+$ cd /home/user
+$ cd
+```
+
 ### umaks Command
 
+With umask you can change the system mask. This allows you to change the permissions with which files are created. If you use umask without any arguments it will show the current system mask.
+
+```shell
+$ umask 0022
+$ umask
+0022
+```
+
 ### exit Command
+
+Exit closes the minishell and allows you to return to the normal shell.
+
+### CTRL + C
+
+Pressing ctrl+c will not close the minishell. If any command is running in the foreground and you press ctrl+c it will cancel the execution.
+
+### Shell Prompt
+
+El prompt de la shell es similar al de bash. Muestra username@hostName:workingDirectory$.
+
+```shell
+brais@brais-GL62M-7RDX:/home/brais$
+```
 
 ## Installation
 
@@ -63,6 +116,8 @@ To execute the minishell you only have to give execution permissions
 chmod u+x minishell
 ./minishell
 ```
+
+After this the minishell should be running and you can use all its functionalities. If you want to close it execute the exit command.
 
 ## Summary
 
