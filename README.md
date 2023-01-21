@@ -1,30 +1,10 @@
-# minishell 
+
+# minishell
+
+This project is all about recreating the shell, taking bash (Bourne Again Shell) as reference. This was a couple project, and I worked with [@lord-47](https://github.com/lord-47) :)
 
 
-### Table of Contents
-
-* [Introduction](#introduction)
-	* [What the Shell?](#what-the-shell)
-* [Our Implementation of Minishell](#our-implementation-of-minishell)
-	* [Shell External Commands](#shell-external)
-	* [Parser](#parser)
-	* [Executor](#executor)
-	* [Mind Map](#mind-map)
-	* [Global Variable](#global-variable)
-* [Builtins](#builtins)
-* [Prompt](#prompt)
-* [Installation](#installation)
-	* [Basic Usage](#basic-usage)
-	* [Demos](#demos)
-* [References](#references)
-* [Summary](#summary)
-
-
-## Introduction
-
-This project is all about recreating the shell, taking bash (Bourne Again SHell) as reference. This was a couple project, and I worked with [@lord-47](https://github.com/lord-47) :)
-
-#### What the Shell?
+### What the Shell?
 
 As we just said, we are asked to implement our own shell, but what is a shell to begin with? If we think of (for example) Linux as a nut or a seashell, the kernel/seed is the core of the nut and has to be surrounded by a cover or shell. Likewise, the shell we are implementing works as a command interpreter communicating with the OS kernel in a secure way, and allows us to perform a number tasks from a command line, namely execute commands, create or delete files or directories, or read and write content of files, among (many) other things
 
@@ -34,40 +14,35 @@ The general idea for this shell is executing all the external shell commands and
 
 ### Shell External Commands
 
+As mentioned before, the minishell can execute all system commands. You can also execute commands with pipes, so you can nest commands with a limit of up to 50 linked commands (which we think is more than enough). To connect commands you have to use the character |, for example:
+
+```shell
+$ ls *.txt | grep test | wc -l
+```
+
 ### Execute Commands in Background
+
+It also allows sending commands to the background. This allows you to continue using the minishell while a command is running. To send commands to the background you have to use the character &, for example: 
+
+```shell
+$ sleep 3 &
+```
+
+### jobs Command
+
+### fg Command
 
 ### cd Command
 
 ### umaks Command
 
-### fg Command
-
 ### exit Command
-
-### jobs Command
-
-## Prompt
-
-As mentioned previously, we use ``readline`` to read the string containing the shell commands. To make it more interactive, ``readline`` receives a string to be used as a prompt. We have heavily tweaked the looks of it to be nice to use. The prompt is structured as follows:
-
-```
-$USER@minishell $PWD $
-```
-
-Some remarks:
-
-* If there is any problem retrieving the user, it will be replaced with ``guest``
-* The ``PWD`` is colored blue and dynamically replaces the ``HOME`` variable with ``~`` when the variable is set. See below for more details
-* The ``$`` in the end is printed blue or red depending on the exit status in the struct
-
-![Screenshot from 2021-11-24 13-29-43](https://user-images.githubusercontent.com/40824677/143238700-8878c4f3-4763-4c8f-976e-aae049c9ed57.png)
-![Screenshot from 2021-11-24 18-30-37](https://user-images.githubusercontent.com/40824677/143287061-7b87efc3-d5ea-4d65-b2f0-87fe5e96ba17.png)
 
 ## Installation
 
 * Prerequisites
 
-Make sure you have gcc compiler installed:
+Make sure gcc compiler is installed:
 
 
 * Cloning the Repositories
@@ -92,5 +67,3 @@ chmod u+x minishell
 ## Summary
 
 This was one of our biggest project yet, and it sure was challenging. Co-developing can be tricky but we had fun in the process and learn a lot about concurrent programming :)
-
-November 24th, 2021
