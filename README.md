@@ -1,6 +1,6 @@
 # minishell
 
-This project is all about recreating the shell, taking bash (Bourne Again Shell) as reference. This was a couple project, and I worked with [@lord-47](https://github.com/lord-47) :)
+This project is all about recreating the shell, taking bash (Bourne Again Shell) as reference. This was a couple project, and I worked with [@braiscabo](https://github.com/braiscabo) :)
 
 
 ### What the Shell?
@@ -101,7 +101,7 @@ Make sure gcc compiler is installed:
 * Cloning the Repositories
 
 ```shell
-git clone https://github.com/BraisCabo/minishell.git
+git clone https://github.com/lord-47/MiniShell
 cd minishell
 make
 ```
